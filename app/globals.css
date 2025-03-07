@@ -12,6 +12,19 @@ body {
   }
 }
 
+/* Define custom soundwave animation */
+@keyframes soundwave {
+  0% {
+    height: 0.1rem;
+  }
+  50% {
+    height: 0.8rem;
+  }
+  100% {
+    height: 0.1rem;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

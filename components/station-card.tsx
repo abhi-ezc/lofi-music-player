@@ -4,6 +4,26 @@ import { Play, Pause } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
+// Audio wave animation component
+const AudioWave = () => {
+  return (
+    <div className="flex items-center gap-[2px] h-3 ml-2">
+      {[...Array(5)].map((_, i) => (
+        <span
+          key={i}
+          className="w-[2px] bg-green-400 rounded-full opacity-90"
+          style={{
+            height: "3px",
+            animation: `soundwave ${0.9 + i * 0.2}s ease-in-out ${
+              i * 0.1
+            }s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 interface StationCardProps {
   station: {
     id: string;
@@ -319,11 +339,7 @@ export default function StationCard({
         <div>
           <div className="flex items-center">
             <h3 className="text-white font-medium">{station.name}</h3>
-            {isPlaying && isActive && (
-              <span className="ml-2 text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-full">
-                Playing
-              </span>
-            )}
+            {isPlaying && isActive && <AudioWave />}
           </div>
           <p className="text-sm text-slate-300">{station.description}</p>
         </div>

@@ -100,7 +100,11 @@ export default function LofiPlayer() {
           console.error("Error loading initial audio:", e);
         }
 
+        // Set initial volume
         audio.volume = volume / 100;
+
+        // Set initial muted state
+        audio.muted = isMuted;
 
         // Simpler error handling
         audio.onerror = (e) => {
@@ -119,12 +123,26 @@ export default function LofiPlayer() {
         }
       };
     }
-  }, [currentStation.url, volume]);
+    // Only depend on the station URL to prevent recreation on volume changes
+  }, [currentStation.url]);
+
+  // Separate effect to handle volume and mute changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100;
+      audioRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted]);
 
   // Handle station change
   const changeStation = (station: (typeof stations)[0]) => {
     setCurrentStation(station);
+
     if (audioRef.current) {
+      // Store current volume and muted state
+      const currentVolume = audioRef.current.volume;
+      const currentMuted = audioRef.current.muted;
+
       // Stop current audio
       audioRef.current.pause();
 
@@ -138,26 +156,34 @@ export default function LofiPlayer() {
         console.error("Error loading audio:", e);
       }
 
+      // Restore volume and muted state
+      audioRef.current.volume = currentVolume;
+      audioRef.current.muted = currentMuted;
+
       // Use the canplay event to play the audio once it's ready
       const handleCanPlay = () => {
         // Remove the event listener to avoid duplicate calls
         audioRef.current?.removeEventListener("canplay", handleCanPlay);
 
-        // Play the audio
-        const playPromise = audioRef.current?.play();
-        setIsPlaying(true);
+        if (audioRef.current) {
+          // Play the audio
+          const playPromise = audioRef.current.play();
 
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log("Play error:", error);
-            // Only update play state for actual failures, not user interruptions
-            if (
-              error.name !== "AbortError" &&
-              error.name !== "NotAllowedError"
-            ) {
-              setIsPlaying(false);
-            }
-          });
+          // Update playing state
+          setIsPlaying(true);
+
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.error("Play error during station change:", error);
+              // Only update play state for actual failures
+              if (
+                error.name !== "AbortError" &&
+                error.name !== "NotAllowedError"
+              ) {
+                setIsPlaying(false);
+              }
+            });
+          }
         }
       };
 
@@ -175,7 +201,7 @@ export default function LofiPlayer() {
               setIsPlaying(true);
             })
             .catch((error) => {
-              console.log("Backup play error:", error);
+              console.error("Backup play error:", error);
               if (
                 error.name !== "AbortError" &&
                 error.name !== "NotAllowedError"
@@ -189,7 +215,9 @@ export default function LofiPlayer() {
       // Cleanup function in case component unmounts
       const cleanup = () => {
         clearTimeout(timeoutId);
-        audioRef.current?.removeEventListener("canplay", handleCanPlay);
+        if (audioRef.current) {
+          audioRef.current.removeEventListener("canplay", handleCanPlay);
+        }
       };
 
       // Add to cleanup queue
@@ -200,25 +228,35 @@ export default function LofiPlayer() {
   // Handle play/pause
   const togglePlay = () => {
     if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        const playPromise = audioRef.current.play();
+      try {
+        if (isPlaying) {
+          // Pause the audio
+          audioRef.current.pause();
+          setIsPlaying(false);
+        } else {
+          // Play the audio
+          const playPromise = audioRef.current.play();
 
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log("Play error:", error);
-            // Don't show alerts for user interactions
-            if (
-              error.name !== "AbortError" &&
-              error.name !== "NotAllowedError"
-            ) {
-              setIsPlaying(false);
-            }
-          });
+          // Update playing state optimistically
+          setIsPlaying(true);
+
+          // Handle potential play errors
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.error("Play error:", error);
+              // Only revert play state for actual failures, not user interruptions
+              if (
+                error.name !== "AbortError" &&
+                error.name !== "NotAllowedError"
+              ) {
+                setIsPlaying(false);
+              }
+            });
+          }
         }
-        setIsPlaying(true);
+      } catch (error) {
+        console.error("Toggle play error:", error);
+        setIsPlaying(false);
       }
     }
   };
@@ -226,22 +264,64 @@ export default function LofiPlayer() {
   // Handle volume change
   const handleVolumeChange = (value: number[]) => {
     const newVolume = value[0];
+
+    // Save previous playing state
+    const wasPlaying = isPlaying;
+
+    // Update volume state
     setVolume(newVolume);
+
     if (audioRef.current) {
+      // Set the volume property directly without affecting playback
       audioRef.current.volume = newVolume / 100;
-    }
-    if (newVolume === 0) {
-      setIsMuted(true);
-    } else {
-      setIsMuted(false);
+
+      // Handle mute state based on volume
+      if (newVolume > 0 && isMuted) {
+        audioRef.current.muted = false;
+        setIsMuted(false);
+      } else if (newVolume === 0) {
+        audioRef.current.muted = true;
+        setIsMuted(true);
+      }
+
+      // Ensure playback continues if it was playing before
+      if (wasPlaying && !audioRef.current.paused) {
+        // Already playing, don't need to do anything
+      } else if (wasPlaying) {
+        // Was playing but somehow paused during volume change, resume
+        audioRef.current.play().catch((err) => {
+          console.error("Error resuming after volume change:", err);
+        });
+      }
     }
   };
 
   // Toggle mute
   const toggleMute = () => {
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
+      // Toggle muted state
+      const newMutedState = !isMuted;
+      audioRef.current.muted = newMutedState;
+      setIsMuted(newMutedState);
+
+      // If unmuting, make sure volume is above 0
+      if (!newMutedState && volume === 0) {
+        const newVolume = 30; // Default volume if was at 0
+        setVolume(newVolume);
+        audioRef.current.volume = newVolume / 100;
+      }
+    }
+  };
+
+  // Toggle playback for an existing station or change to a new station
+  const toggleStationPlayback = (station: (typeof stations)[0]) => {
+    // Check if it's the current station
+    if (station.id === currentStation.id) {
+      // Toggle play/pause for current station
+      togglePlay();
+    } else {
+      // Change to new station
+      changeStation(station);
     }
   };
 
@@ -286,7 +366,7 @@ export default function LofiPlayer() {
                     station={station}
                     isActive={currentStation.id === station.id}
                     isPlaying={isPlaying && currentStation.id === station.id}
-                    onClick={() => changeStation(station)}
+                    onClick={() => toggleStationPlayback(station)}
                   />
                 ))}
               </div>
@@ -375,11 +455,12 @@ export default function LofiPlayer() {
                 )}
               </Button>
               <Slider
-                defaultValue={[volume]}
+                value={[volume]}
                 max={100}
                 step={1}
                 className="w-24"
                 onValueChange={handleVolumeChange}
+                aria-label="Volume"
               />
             </div>
           </div>
