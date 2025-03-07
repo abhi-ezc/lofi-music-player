@@ -84,28 +84,141 @@ export default function LofiPlayer() {
   );
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Handle play/pause
-  const togglePlay = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play().catch((error) => {
-          console.error("Error playing audio:", error);
+  // Initialize audio
+  useEffect(() => {
+    // Only create the audio element on the client side
+    if (typeof window !== "undefined") {
+      if (!audioRef.current) {
+        const audio = new Audio();
+        audio.preload = "auto";
+        audio.src = currentStation.url;
+
+        // Try to load the audio
+        try {
+          audio.load();
+        } catch (e) {
+          console.error("Error loading initial audio:", e);
+        }
+
+        audio.volume = volume / 100;
+
+        // Simpler error handling
+        audio.onerror = (e) => {
+          console.error("Audio error:", e);
           setIsPlaying(false);
-        });
+        };
+
+        audioRef.current = audio;
+        setAudioElement(audio);
       }
-      setIsPlaying(!isPlaying);
+
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
     }
-  };
+  }, [currentStation.url, volume]);
 
   // Handle station change
   const changeStation = (station: (typeof stations)[0]) => {
     setCurrentStation(station);
     if (audioRef.current) {
+      // Stop current audio
+      audioRef.current.pause();
+
+      // Set new source
       audioRef.current.src = station.url;
+
+      // Explicitly tell the audio to load
+      try {
+        audioRef.current.load();
+      } catch (e) {
+        console.error("Error loading audio:", e);
+      }
+
+      // Use the canplay event to play the audio once it's ready
+      const handleCanPlay = () => {
+        // Remove the event listener to avoid duplicate calls
+        audioRef.current?.removeEventListener("canplay", handleCanPlay);
+
+        // Play the audio
+        const playPromise = audioRef.current?.play();
+        setIsPlaying(true);
+
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Play error:", error);
+            // Only update play state for actual failures, not user interruptions
+            if (
+              error.name !== "AbortError" &&
+              error.name !== "NotAllowedError"
+            ) {
+              setIsPlaying(false);
+            }
+          });
+        }
+      };
+
+      // Listen for the canplay event
+      audioRef.current.addEventListener("canplay", handleCanPlay);
+
+      // Set a backup timeout in case canplay doesn't fire
+      const timeoutId = setTimeout(() => {
+        // If canplay hasn't fired, try to play anyway
+        if (audioRef.current) {
+          audioRef.current.removeEventListener("canplay", handleCanPlay);
+          audioRef.current
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+            })
+            .catch((error) => {
+              console.log("Backup play error:", error);
+              if (
+                error.name !== "AbortError" &&
+                error.name !== "NotAllowedError"
+              ) {
+                setIsPlaying(false);
+              }
+            });
+        }
+      }, 2000);
+
+      // Cleanup function in case component unmounts
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        audioRef.current?.removeEventListener("canplay", handleCanPlay);
+      };
+
+      // Add to cleanup queue
+      setTimeout(cleanup, 5000);
+    }
+  };
+
+  // Handle play/pause
+  const togglePlay = () => {
+    if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.play();
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        const playPromise = audioRef.current.play();
+
+        if (playPromise !== undefined) {
+          playPromise.catch((error) => {
+            console.log("Play error:", error);
+            // Don't show alerts for user interactions
+            if (
+              error.name !== "AbortError" &&
+              error.name !== "NotAllowedError"
+            ) {
+              setIsPlaying(false);
+            }
+          });
+        }
+        setIsPlaying(true);
       }
     }
   };
@@ -131,26 +244,6 @@ export default function LofiPlayer() {
       setIsMuted(!isMuted);
     }
   };
-
-  // Initialize audio
-  useEffect(() => {
-    // Only create the audio element on the client side
-    if (typeof window !== "undefined") {
-      if (!audioRef.current) {
-        const audio = new Audio(currentStation.url);
-        audio.volume = volume / 100;
-        audioRef.current = audio;
-        setAudioElement(audio);
-      }
-
-      return () => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current = null;
-        }
-      };
-    }
-  }, []);
 
   return (
     <div

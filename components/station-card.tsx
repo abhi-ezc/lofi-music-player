@@ -297,7 +297,7 @@ export default function StationCard({
       className={cn(
         "relative group cursor-pointer rounded-lg p-4 transition-all duration-300 overflow-hidden",
         isActive
-          ? "bg-black/40 border-2 border-white/20"
+          ? "bg-black/40 border-2 border-white/20 shadow-lg"
           : "bg-black/30 border border-white/10 hover:bg-black/40"
       )}
       onClick={onClick}
@@ -315,22 +315,37 @@ export default function StationCard({
         )}
       />
 
-      <div className="flex justify-between items-start relative z-10">
+      <div className="flex items-center justify-between gap-4 relative z-10">
         <div>
-          <h3 className="font-medium text-white">{station.name}</h3>
-          <p className="text-sm text-slate-300 mt-1">{station.description}</p>
+          <div className="flex items-center">
+            <h3 className="text-white font-medium">{station.name}</h3>
+            {isPlaying && isActive && (
+              <span className="ml-2 text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded-full">
+                Playing
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-slate-300">{station.description}</p>
         </div>
 
         <div
           className={cn(
-            "h-8 w-8 rounded-full flex items-center justify-center transition-all",
-            isActive ? "bg-white/20" : "bg-black/40 group-hover:bg-black/60"
+            "h-10 w-10 rounded-full flex items-center justify-center transition-all cursor-pointer hover:scale-110",
+            isActive && isPlaying
+              ? "bg-green-500/30 hover:bg-green-500/40"
+              : isActive
+              ? "bg-white/20 hover:bg-white/30"
+              : "bg-black/40 group-hover:bg-black/60 hover:bg-white/10"
           )}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent triggering parent onClick
+            onClick();
+          }}
         >
-          {isPlaying ? (
-            <Pause className="h-4 w-4 text-white" />
+          {isPlaying && isActive ? (
+            <Pause className="h-5 w-5 text-white" />
           ) : (
-            <Play className="h-4 w-4 text-white" />
+            <Play className="h-5 w-5 text-white" />
           )}
         </div>
       </div>
