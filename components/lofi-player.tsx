@@ -79,6 +79,9 @@ export default function LofiPlayer() {
   const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
   const [currentMood, setCurrentMood] = useState("study");
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(
+    null
+  );
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Handle play/pause
@@ -87,7 +90,10 @@ export default function LofiPlayer() {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        audioRef.current.play().catch((error) => {
+          console.error("Error playing audio:", error);
+          setIsPlaying(false);
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -128,17 +134,22 @@ export default function LofiPlayer() {
 
   // Initialize audio
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio(currentStation.url);
-      audioRef.current.volume = volume / 100;
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
+    // Only create the audio element on the client side
+    if (typeof window !== "undefined") {
+      if (!audioRef.current) {
+        const audio = new Audio(currentStation.url);
+        audio.volume = volume / 100;
+        audioRef.current = audio;
+        setAudioElement(audio);
       }
-    };
+
+      return () => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
+    }
   }, []);
 
   return (
