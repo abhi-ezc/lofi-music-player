@@ -39,7 +39,7 @@ const stations = [
     id: "jazz-vibes",
     name: "Jazz Vibes",
     description: "Smooth jazz with lo-fi elements",
-    url: "https://strw1.openstream.co/878",
+    url: "http://stream.zeno.fm/3u1qndyk8rhvv",
     color: "bg-blue-500",
   },
   {
@@ -60,7 +60,7 @@ const stations = [
     id: "focus",
     name: "Focus Beats",
     description: "Concentration-enhancing rhythms",
-    url: "https://stream.zeno.fm/f3wvbbqmdg8uv",
+    url: "http://usa9.fastcast4u.com/proxy/jamz?mp=/1",
     color: "bg-rose-500",
   },
 ];
