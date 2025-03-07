@@ -1,13 +1,23 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Play, Pause, SkipForward, Volume2, VolumeX, Moon, Coffee, CloudRain, Waves } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import StationCard from "./station-card"
-import VisualEffect from "./visual-effect"
+import { useState, useRef, useEffect } from "react";
+import {
+  Play,
+  Pause,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Moon,
+  Coffee,
+  CloudRain,
+  Waves,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import StationCard from "./station-card";
+import VisualEffect from "./visual-effect";
 
 // Lo-fi stations data
 const stations = [
@@ -15,7 +25,7 @@ const stations = [
     id: "chillhop",
     name: "Chillhop",
     description: "The best of chill hip hop beats",
-    url: "https://streams.chillhop.com/lo-fi",
+    url: "https://radio.nia.nc/radio/8020/lofi-hq-stream.aac",
     color: "bg-amber-500",
   },
   {
@@ -53,7 +63,7 @@ const stations = [
     url: "https://stream.zeno.fm/f3wvbbqmdg8uv",
     color: "bg-rose-500",
   },
-]
+];
 
 // Mood presets
 const moods = [
@@ -61,92 +71,100 @@ const moods = [
   { id: "sleep", name: "Sleep", icon: <Moon className="h-4 w-4" /> },
   { id: "rain", name: "Rainy", icon: <CloudRain className="h-4 w-4" /> },
   { id: "ocean", name: "Ocean", icon: <Waves className="h-4 w-4" /> },
-]
+];
 
 export default function LofiPlayer() {
-  const [currentStation, setCurrentStation] = useState(stations[0])
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [volume, setVolume] = useState(70)
-  const [isMuted, setIsMuted] = useState(false)
-  const [currentMood, setCurrentMood] = useState("study")
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [currentStation, setCurrentStation] = useState(stations[0]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(70);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentMood, setCurrentMood] = useState("study");
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Handle play/pause
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.pause()
+        audioRef.current.pause();
       } else {
-        audioRef.current.play()
+        audioRef.current.play();
       }
-      setIsPlaying(!isPlaying)
+      setIsPlaying(!isPlaying);
     }
-  }
+  };
 
   // Handle station change
   const changeStation = (station: (typeof stations)[0]) => {
-    setCurrentStation(station)
+    setCurrentStation(station);
     if (audioRef.current) {
-      audioRef.current.src = station.url
+      audioRef.current.src = station.url;
       if (isPlaying) {
-        audioRef.current.play()
+        audioRef.current.play();
       }
     }
-  }
+  };
 
   // Handle volume change
   const handleVolumeChange = (value: number[]) => {
-    const newVolume = value[0]
-    setVolume(newVolume)
+    const newVolume = value[0];
+    setVolume(newVolume);
     if (audioRef.current) {
-      audioRef.current.volume = newVolume / 100
+      audioRef.current.volume = newVolume / 100;
     }
     if (newVolume === 0) {
-      setIsMuted(true)
+      setIsMuted(true);
     } else {
-      setIsMuted(false)
+      setIsMuted(false);
     }
-  }
+  };
 
   // Toggle mute
   const toggleMute = () => {
     if (audioRef.current) {
-      audioRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
     }
-  }
+  };
 
   // Initialize audio
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(currentStation.url)
-      audioRef.current.volume = volume / 100
+      audioRef.current = new Audio(currentStation.url);
+      audioRef.current.volume = volume / 100;
     }
 
     return () => {
       if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
+        audioRef.current.pause();
+        audioRef.current = null;
       }
-    }
-  }, [])
+    };
+  }, []);
 
   return (
     <div
       className={cn(
         "min-h-screen flex flex-col items-center justify-between p-4 md:p-8 transition-all duration-500",
-        currentMood === "study" && "bg-gradient-to-br from-amber-900/90 to-slate-900",
-        currentMood === "sleep" && "bg-gradient-to-br from-indigo-900/90 to-slate-900",
-        currentMood === "rain" && "bg-gradient-to-br from-blue-900/90 to-slate-900",
-        currentMood === "ocean" && "bg-gradient-to-br from-cyan-900/90 to-slate-900",
+        currentMood === "study" &&
+          "bg-gradient-to-br from-amber-900/90 to-slate-900",
+        currentMood === "sleep" &&
+          "bg-gradient-to-br from-indigo-900/90 to-slate-900",
+        currentMood === "rain" &&
+          "bg-gradient-to-br from-blue-900/90 to-slate-900",
+        currentMood === "ocean" &&
+          "bg-gradient-to-br from-cyan-900/90 to-slate-900"
       )}
     >
       <VisualEffect mood={currentMood} />
 
       <div className="w-full max-w-4xl mx-auto z-10">
         <header className="flex flex-col items-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">Chill Waves</h1>
-          <p className="text-slate-300 text-center">Relax, focus, and unwind with lo-fi beats</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
+            Chill Waves
+          </h1>
+          <p className="text-slate-300 text-center">
+            Relax, focus, and unwind with lo-fi beats
+          </p>
         </header>
 
         <div className="bg-black/50 backdrop-blur-md rounded-xl p-4 md:p-6 shadow-xl border border-white/10">
@@ -178,7 +196,9 @@ export default function LofiPlayer() {
                     variant={currentMood === mood.id ? "default" : "outline"}
                     className={cn(
                       "h-24 flex flex-col gap-2",
-                      currentMood === mood.id ? "border-2 border-white/20" : "border border-white/10",
+                      currentMood === mood.id
+                        ? "border-2 border-white/20"
+                        : "border border-white/10"
                     )}
                     onClick={() => setCurrentMood(mood.id)}
                   >
@@ -187,7 +207,9 @@ export default function LofiPlayer() {
                   </Button>
                 ))}
               </div>
-              <p className="text-sm text-slate-400 text-center pt-2">Choose a mood to change the visual atmosphere</p>
+              <p className="text-sm text-slate-400 text-center pt-2">
+                Choose a mood to change the visual atmosphere
+              </p>
             </TabsContent>
           </Tabs>
         </div>
@@ -201,16 +223,22 @@ export default function LofiPlayer() {
                 className="h-12 w-12 rounded-full bg-white/10 hover:bg-white/20 text-white"
                 onClick={togglePlay}
               >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-10 w-10 rounded-full bg-white/5 hover:bg-white/10 text-white"
                 onClick={() => {
-                  const currentIndex = stations.findIndex((s) => s.id === currentStation.id)
-                  const nextIndex = (currentIndex + 1) % stations.length
-                  changeStation(stations[nextIndex])
+                  const currentIndex = stations.findIndex(
+                    (s) => s.id === currentStation.id
+                  );
+                  const nextIndex = (currentIndex + 1) % stations.length;
+                  changeStation(stations[nextIndex]);
                 }}
               >
                 <SkipForward className="h-4 w-4" />
@@ -220,21 +248,39 @@ export default function LofiPlayer() {
             <div className="flex-1 px-2">
               <div className="text-white text-center sm:text-left mb-1 font-medium">
                 {currentStation.name}
-                <span className="text-slate-400 text-sm ml-2">{isPlaying ? "Now Playing" : "Paused"}</span>
+                <span className="text-slate-400 text-sm ml-2">
+                  {isPlaying ? "Now Playing" : "Paused"}
+                </span>
               </div>
-              <div className="text-slate-400 text-sm text-center sm:text-left">{currentStation.description}</div>
+              <div className="text-slate-400 text-sm text-center sm:text-left">
+                {currentStation.description}
+              </div>
             </div>
 
             <div className="flex items-center gap-2 min-w-[140px]">
-              <Button variant="ghost" size="icon" className="text-white" onClick={toggleMute}>
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white"
+                onClick={toggleMute}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
               </Button>
-              <Slider defaultValue={[volume]} max={100} step={1} className="w-24" onValueChange={handleVolumeChange} />
+              <Slider
+                defaultValue={[volume]}
+                max={100}
+                step={1}
+                className="w-24"
+                onValueChange={handleVolumeChange}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
-
